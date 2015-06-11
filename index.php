@@ -18,6 +18,11 @@ class Writer
 		echo $s;
 		$this->offset += strlen($s);
 	}
+	
+	public function writeLn($s)
+	{
+		$this->write("$s\r\n");
+	}
 }
 
 
@@ -38,22 +43,22 @@ class Document
 	
 	public function outputHeader(Writer $writer)
 	{
-		$writer->write("%PDF-1.2\r\n");
-		$writer->write("\r\n");
+		$writer->writeLn("%PDF-1.2");
+		$writer->writeLn("");
 	}
 	
 	
 	public function outputIndirectObject(Writer $writer, $comment, $id, $map)
 	{
-		$writer->write("% {$comment}\r\n");
-		$writer->write("{$id} 0 obj\r\n");
-		$writer->write("<<\r\n");
+		$writer->writeLn("% {$comment}");
+		$writer->writeLn("{$id} 0 obj");
+		$writer->writeLn("<<");
 		foreach ($map as $key => $value) {
-			$writer->write("/{$key} {$value}\r\n");
+			$writer->writeLn("/{$key} {$value}");
 		}
-		$writer->write(">>\r\n");
-		$writer->write("endobj\r\n");
-		$writer->write("\r\n");
+		$writer->writeLn(">>");
+		$writer->writeLn("endobj");
+		$writer->writeLn("");
 	}
 	
 	
@@ -86,33 +91,33 @@ class Document
 
 	public function outputXref(Writer $writer)
 	{
-		$writer->write("xref\r\n");
-		$writer->write("0 4\r\n");
-		$writer->write("0000000000 65535 f\r\n");
-		$writer->write("0000000023 00000 n\r\n");
-		$writer->write("0000000098 00000 n\r\n");
-		$writer->write("0000000179 00000 n\r\n");
-		$writer->write("\r\n");
+		$writer->writeLn("xref");
+		$writer->writeLn("0 4");
+		$writer->writeLn("0000000000 65535 f");
+		$writer->writeLn("0000000023 00000 n");
+		$writer->writeLn("0000000098 00000 n");
+		$writer->writeLn("0000000179 00000 n");
+		$writer->writeLn("");
 	}
 	
 	public function outputTrailer(Writer $writer)
 	{
-		$writer->write("trailer\r\n");
-		$writer->write("<<\r\n");
-		$writer->write("/Size 4\r\n");
-		$writer->write("/Root 1 0 R\r\n");
-		$writer->write(">>\r\n");
+		$writer->writeLn("trailer");
+		$writer->writeLn("<<");
+		$writer->writeLn("/Size 4");
+		$writer->writeLn("/Root 1 0 R");
+		$writer->writeLn(">>");
 	}
 	
 	public function outputXrefOffset(Writer $writer)
 	{
-		$writer->write("startxref\r\n");
-		$writer->write("282\r\n");
+		$writer->writeLn("startxref");
+		$writer->writeLn("282");
 	}
 	
 	public function outputFooter(Writer $writer)
 	{
-		$writer->write("%%EOF\r\n");
+		$writer->writeLn("%%EOF");
 	}
 }
 
