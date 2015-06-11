@@ -1,62 +1,82 @@
 <?php
-class Document
+class Writer
 {
-	public function output()
+	protected $offset = 0;
+	
+	public function __construct()
 	{
 		header('Content-Type: application/pdf');
-		
-		$this->outputHeader();
-		$this->outputCatalog();
-		$this->outputPages();
-		$this->outputPage();
-		$this->outputXref();
-		$this->outputTrailer();
-		$this->outputXrefOffset();
-		$this->outputFooter();
+	}
+	
+	public function getOffset()
+	{
+		return $this->offset;
+	}
+	
+	public function write($s)
+	{
+		echo $s;
+		$this->offset += strlen($s);
+	}
+}
+
+
+class Document
+{
+	public function output(Writer $writer)
+	{
+		$this->outputHeader($writer);
+		$this->outputCatalog($writer);
+		$this->outputPages($writer);
+		$this->outputPage($writer);
+		$this->outputXref($writer);
+		$this->outputTrailer($writer);
+		$this->outputXrefOffset($writer);
+		$this->outputFooter($writer);
 	}
 	
 	
-	public function outputHeader()
+	public function outputHeader(Writer $writer)
 	{
-		echo "%PDF-1.2\r\n";
-		echo "\r\n";
+		$writer->write("%PDF-1.2\r\n");
+		$writer->write("\r\n");
 	}
 	
 	
-	public function outputIndirectObject($comment, $id, $map)
+	public function outputIndirectObject(Writer $writer, $comment, $id, $map)
 	{
-		echo "% {$comment}\r\n";
-		echo "{$id} 0 obj\r\n";
-		echo "<<\r\n";
+		$writer->write("% {$comment}\r\n");
+		$writer->write("{$id} 0 obj\r\n");
+		$writer->write("<<\r\n");
 		foreach ($map as $key => $value) {
-			echo "/{$key} {$value}\r\n";
+			$writer->write("/{$key} {$value}\r\n");
 		}
-		echo ">>\r\n";
-		echo "endobj\r\n";
-		echo "\r\n";
+		$writer->write(">>\r\n");
+		$writer->write("endobj\r\n");
+		$writer->write("\r\n");
 	}
 	
 	
-	public function outputCatalog()
+	public function outputCatalog(Writer $writer)
 	{
-		$this->outputIndirectObject('Catalog', 1, [
+		$this->outputIndirectObject($writer, 'Catalog', 1, [
 			'Type' => '/Catalog',
 			'Pages' => '2 0 R',
 		]);
 	}
 	
-	public function outputPages()
+	public function outputPages(Writer $writer)
 	{
-		$this->outputIndirectObject('Root page tree', 2, [
+		$this->outputIndirectObject($writer, 'Root page tree', 2, [
 			'Type' => '/Pages',
 			'Kids' => '[ 3 0 R ]',
 			'Count' => 1,
 		]);
 	}
 	
-	public function outputPage()
+	public function outputPage(Writer $writer)
 	{
-		$this->outputIndirectObject('Only page', 3, [
+		$this->outputIndirectObject($writer, 'Only page', 3, [
 			'Type' => '/Page',
 			'Parent' => '2 0 R',
 			'Resources' => '<< >>',
@@ -64,37 +84,37 @@ class Document
 		]);
 	}
 
-	public function outputXref()
+	public function outputXref(Writer $writer)
 	{
-		echo "xref\r\n";
-		echo "0 4\r\n";
-		echo "0000000000 65535 f\r\n";
-		echo "0000000023 00000 n\r\n";
-		echo "0000000098 00000 n\r\n";
-		echo "0000000179 00000 n\r\n";
-		echo "\r\n";
+		$writer->write("xref\r\n");
+		$writer->write("0 4\r\n");
+		$writer->write("0000000000 65535 f\r\n");
+		$writer->write("0000000023 00000 n\r\n");
+		$writer->write("0000000098 00000 n\r\n");
+		$writer->write("0000000179 00000 n\r\n");
+		$writer->write("\r\n");
 	}
 	
-	public function outputTrailer()
+	public function outputTrailer(Writer $writer)
 	{
-		echo "trailer\r\n";
-		echo "<<\r\n";
-		echo "/Size 4\r\n";
-		echo "/Root 1 0 R\r\n";
-		echo ">>\r\n";
+		$writer->write("trailer\r\n");
+		$writer->write("<<\r\n");
+		$writer->write("/Size 4\r\n");
+		$writer->write("/Root 1 0 R\r\n");
+		$writer->write(">>\r\n");
 	}
 	
-	public function outputXrefOffset()
+	public function outputXrefOffset(Writer $writer)
 	{
-		echo "startxref\r\n";
-		echo "282\r\n";
+		$writer->write("startxref\r\n");
+		$writer->write("282\r\n");
 	}
 	
-	public function outputFooter()
+	public function outputFooter(Writer $writer)
 	{
-		echo "%%EOF\r\n";
+		$writer->write("%%EOF\r\n");
 	}
 }
 
 $doc = new Document();
-$doc->output();
+$doc->output(new Writer());
