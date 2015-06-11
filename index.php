@@ -1,6 +1,11 @@
 <?php
-header('Content-Type: application/pdf');
-?>
+class Document
+{
+	public function output()
+	{
+		header('Content-Type: application/pdf');
+		
+		echo <<<EOT
 %PDF-1.2
 
 % Catalog
@@ -45,3 +50,9 @@ trailer
 startxref
 282
 %%EOF
+EOT;
+	}
+}
+
+$doc = new Document();
+$doc->output();
