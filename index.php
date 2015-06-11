@@ -28,12 +28,44 @@ class Writer
 
 class Document
 {
+	protected $index = 1;
+	protected $objects = [];
+	protected $offsets = [];
+	protected $xrefOffset;
+	
+	public function createIndirectObject($map)
+	{
+		$this->objects[$this->index] = $map;
+		$this->index++;
+	}
+	
+	
 	public function output(Writer $writer)
 	{
+		$this->createIndirectObject([
+			'Type' => '/Catalog',
+			'Pages' => '2 0 R',
+		]);
+		
+		$this->createIndirectObject([
+			'Type' => '/Pages',
+			'Kids' => '[ 3 0 R ]',
+			'Count' => 1,
+		]);
+		
+		$this->createIndirectObject([
+			'Type' => '/Page',
+			'Parent' => '2 0 R',
+			'Resources' => '<< >>',
+			'MediaBox' => '[ 0 0 1000 1000 ]',
+		]);
+		
+		
 		$this->outputHeader($writer);
-		$this->outputCatalog($writer);
-		$this->outputPages($writer);
-		$this->outputPage($writer);
+		foreach ($this->objects as $id => $map) {
+			$this->outputIndirectObject($writer, $id, $map);
+		}
+		
 		$this->outputXref($writer);
 		$this->outputTrailer($writer);
 		$this->outputXrefOffset($writer);
@@ -48,9 +80,10 @@ class Document
 	}
 	
 	
-	public function outputIndirectObject(Writer $writer, $comment, $id, $map)
+	public function outputIndirectObject(Writer $writer, $id, $map)
 	{
-		$writer->writeLn("% {$comment}");
+		$this->offsets[$id] = $writer->getOffset();
+		
 		$writer->writeLn("{$id} 0 obj");
 		$writer->writeLn("<<");
 		foreach ($map as $key => $value) {
@@ -61,50 +94,29 @@ class Document
 		$writer->writeLn("");
 	}
 	
-	
-	public function outputCatalog(Writer $writer)
-	{
-		$this->outputIndirectObject($writer, 'Catalog', 1, [
-			'Type' => '/Catalog',
-			'Pages' => '2 0 R',
-		]);
-	}
-	
-	public function outputPages(Writer $writer)
-	{
-		$this->outputIndirectObject($writer, 'Root page tree', 2, [
-			'Type' => '/Pages',
-			'Kids' => '[ 3 0 R ]',
-			'Count' => 1,
-		]);
-	}
-	
-	public function outputPage(Writer $writer)
-	{
-		$this->outputIndirectObject($writer, 'Only page', 3, [
-			'Type' => '/Page',
-			'Parent' => '2 0 R',
-			'Resources' => '<< >>',
-			'MediaBox' => '[ 0 0 1000 1000 ]',
-		]);
-	}
 
 	public function outputXref(Writer $writer)
 	{
+		$this->xrefOffset = $writer->getOffset();
+		
+		$count = count($this->objects);
+		
 		$writer->writeLn("xref");
-		$writer->writeLn("0 4");
+		$writer->writeLn(sprintf("0 {$count}"));
 		$writer->writeLn("0000000000 65535 f");
-		$writer->writeLn("0000000023 00000 n");
-		$writer->writeLn("0000000098 00000 n");
-		$writer->writeLn("0000000179 00000 n");
+		foreach ($this->objects as $id => $object) {
+			$writer->writeLn(sprintf("%010d 00000 n", $this->offsets[$id]));
+		}
 		$writer->writeLn("");
 	}
 	
 	public function outputTrailer(Writer $writer)
 	{
+		$count = count($this->objects);
+		
 		$writer->writeLn("trailer");
 		$writer->writeLn("<<");
-		$writer->writeLn("/Size 4");
+		$writer->writeLn("/Size {$count}");
 		$writer->writeLn("/Root 1 0 R");
 		$writer->writeLn(">>");
 	}
@@ -112,7 +124,7 @@ class Document
 	public function outputXrefOffset(Writer $writer)
 	{
 		$writer->writeLn("startxref");
-		$writer->writeLn("282");
+		$writer->writeLn($this->xrefOffset);
 	}
 	
 	public function outputFooter(Writer $writer)
