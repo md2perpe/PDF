@@ -23,43 +23,45 @@ class Document
 	}
 	
 	
-	public function outputCatalog()
+	public function outputIndirectObject($comment, $id, $map)
 	{
-		echo "% Catalog\r\n";
-		echo "1 0 obj\r\n";
+		echo "% {$comment}\r\n";
+		echo "{$id} 0 obj\r\n";
 		echo "<<\r\n";
-		echo "/Type /Catalog\r\n";
-		echo "/Pages 2 0 R\r\n";
+		foreach ($map as $key => $value) {
+			echo "/{$key} {$value}\r\n";
+		}
 		echo ">>\r\n";
 		echo "endobj\r\n";
 		echo "\r\n";
+	}
+	
+	
+	public function outputCatalog()
+	{
+		$this->outputIndirectObject('Catalog', 1, [
+			'Type' => '/Catalog',
+			'Pages' => '2 0 R',
+		]);
 	}
 	
 	public function outputPages()
 	{
-		echo "% Root page tree\r\n";
-		echo "2 0 obj\r\n";
-		echo "<<\r\n";
-		echo "/Type /Pages\r\n";
-		echo "/Kids [ 3 0 R ]\r\n";
-		echo "/Count 1\r\n";
-		echo ">>\r\n";
-		echo "endobj\r\n";
-		echo "\r\n";
+		$this->outputIndirectObject('Root page tree', 2, [
+			'Type' => '/Pages',
+			'Kids' => '[ 3 0 R ]',
+			'Count' => 1,
+		]);
 	}
 	
 	public function outputPage()
 	{
-		echo "% Only page\r\n";
-		echo "3 0 obj\r\n";
-		echo "<<\r\n";
-		echo "/Type /Page\r\n";
-		echo "/Parent 2 0 R\r\n";
-		echo "/Resources << >>\r\n";
-		echo "/MediaBox [ 0 0 1000 1000 ]\r\n";
-		echo ">>\r\n";
-		echo "endobj\r\n";
-		echo "\r\n";
+		$this->outputIndirectObject('Only page', 3, [
+			'Type' => '/Page',
+			'Parent' => '2 0 R',
+			'Resources' => '<< >>',
+			'MediaBox' => '[ 0 0 1000 1000 ]',
+		]);
 	}
 
 	public function outputXref()
