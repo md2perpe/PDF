@@ -1,10 +1,14 @@
 <?php
 class Writer
 {
+	protected $document;
+	
 	protected $offset = 0;
 
-	public function __construct()
+	public function __construct(Document $document)
 	{
+		$this->document = $document;
+		
 		header('Content-Type: application/pdf');
 	}
 
@@ -23,11 +27,33 @@ class Writer
 	{
 		$this->write("$s\r\n");
 	}
+	
+	public function writeIndirectObject(IndirectObject $object)
+	{
+		$id = $this->document->getIndex($object);
+		$this->write("{$id} 0 R");
+	}
 
 	public function writeMap(array $map)
 	{
 		foreach ($map as $key => $value) {
-			$this->writeLn("/{$key} {$value}");
+			$this->write("/{$key} ");
+			
+			if ($value instanceof IndirectObject) {
+				$this->writeIndirectObject($value);
+			}
+			elseif (is_array($value)) {
+				$this->write("[ ");
+				foreach ($value as $object) {
+					$this->writeIndirectObject($object);
+				}
+				$this->write(" ]");
+			}
+			else {
+				$this->write($value);
+			}
+			
+			$this->writeLn("");
 		}
 	}
 }
@@ -51,7 +77,7 @@ class Catalog  extends IndirectObject
 	{
 		return [
 			'Type' => '/Catalog',
-			'Pages' => '2 0 R',
+			'Pages' => $this->pages,
 		];
 	}
 }
@@ -69,8 +95,8 @@ class Pages  extends IndirectObject
 	{
 		return [
 			'Type' => '/Pages',
-			'Kids' => '[ 3 0 R ]',
-			'Count' => 1,
+			'Kids' => $this->pages,
+			'Count' => count($this->pages),
 		];
 	}
 }
@@ -88,7 +114,7 @@ class Page  extends IndirectObject
 	{
 		return [
 			'Type' => '/Page',
-			'Parent' => '2 0 R',
+			'Parent' => $this->parent,
 			'Resources' => '<< >>',
 			'MediaBox' => '[ 0 0 1000 1000 ]',
 		];
@@ -124,6 +150,18 @@ class Document
 		$this->catalog = $catalog;
 		$this->currentPages = $pages;
 		$this->currentPage = $page;
+	}
+	
+	
+	public function getIndex(IndirectObject $object)
+	{
+		foreach ($this->objects as $id => $obj) {
+			if ($obj === $object) {
+				return $id;
+			}
+		}
+		
+		throw new \Exception('Indirect object not registered');
 	}
 
 
@@ -208,4 +246,4 @@ class Document
 }
 
 $doc = new Document();
-$doc->output(new Writer());
+$doc->output(new Writer($doc));
