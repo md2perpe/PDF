@@ -1,13 +1,59 @@
 <?php
+class IndirectObjectManager
+{
+	protected $objects = [];
+	protected $hashMap = [];
+	protected $lastId = 0;
+	
+	public function __construct()
+	{
+	}
+	
+	public function register(IndirectObject $object)
+	{
+		$hash = spl_object_hash($object);
+		
+		if (!isset($this->hashMap[$hash])) {
+			$this->objects[] = $object;
+			$this->hashMap[$hash] = ++ $this->lastId;
+		}
+		
+		return $this;
+	}
+	
+	public function getId(IndirectObject $object)
+	{
+		$hash = spl_object_hash($object);
+		
+		if (isset($this->hashMap[$hash])) {
+			return $this->hashMap[$hash];
+		}
+		else {
+			throw new \Exception("Object with hash '{$hash}' not registered");
+		}
+	}
+	
+	public function getAll()
+	{
+		return $this->objects;
+	}
+	
+	public function getCount()
+	{
+		return $this->lastId;
+	}
+}
+
+
 class Writer
 {
-	protected $document;
+	protected $objectManager;
 	
 	protected $offset = 0;
 
-	public function __construct(Document $document)
+	public function __construct(IndirectObjectManager $objectManager)
 	{
-		$this->document = $document;
+		$this->objectManager = $objectManager;
 		
 		header('Content-Type: application/pdf');
 	}
@@ -30,7 +76,7 @@ class Writer
 	
 	public function writeIndirectObject(IndirectObject $object)
 	{
-		$id = $this->document->getIndex($object);
+		$id = $this->objectManager->getId($object);
 		$this->write("{$id} 0 R");
 	}
 
@@ -124,25 +170,26 @@ class Page  extends IndirectObject
 
 class Document
 {
-	protected $index = 1;
-	protected $objects = [];
-	protected $offsets = [];
 	protected $xrefOffset;
 
 	protected $catalog;
 	protected $currentPages;
 	protected $currentPage;
+	
+	protected $objectManager;
 
-	public function __construct()
+	public function __construct(IndirectObjectManager $objectManager)
 	{
+		$this->objectManager = $objectManager;
+		
 		$catalog = new Catalog();
-		$this->registerIndirectObject($catalog);
+		$objectManager->register($catalog);
 
 		$pages = new Pages();
-		$this->registerIndirectObject($pages);
+		$objectManager->register($pages);
 
 		$page = new Page($pages);
-		$this->registerIndirectObject($page);
+		$objectManager->register($page);
 
 		$catalog->setPages($pages);
 		$pages->addPage($page);
@@ -153,30 +200,11 @@ class Document
 	}
 	
 	
-	public function getIndex(IndirectObject $object)
-	{
-		foreach ($this->objects as $id => $obj) {
-			if ($obj === $object) {
-				return $id;
-			}
-		}
-		
-		throw new \Exception('Indirect object not registered');
-	}
-
-
-	public function registerIndirectObject($object)
-	{
-		$this->objects[$this->index] = $object;
-		$this->index++;
-	}
-
-
-
 	public function output(Writer $writer)
 	{
 		$this->outputHeader($writer);
-		foreach ($this->objects as $id => $object) {
+		foreach ($this->objectManager->getAll() as $object) {
+			$id = $this->objectManager->getId($object);
 			$this->outputIndirectObject($writer, $id, $object);
 		}
 
@@ -211,12 +239,13 @@ class Document
 	{
 		$this->xrefOffset = $writer->getOffset();
 
-		$count = count($this->objects);
+		$count = $this->objectManager->getCount();
 
 		$writer->writeLn("xref");
 		$writer->writeLn(sprintf("0 {$count}"));
 		$writer->writeLn("0000000000 65535 f");
-		foreach ($this->objects as $id => $object) {
+		foreach ($this->objectManager->getAll() as $object) {
+			$id = $this->objectManager->getId($object);
 			$writer->writeLn(sprintf("%010d 00000 n", $this->offsets[$id]));
 		}
 		$writer->writeLn("");
@@ -224,7 +253,7 @@ class Document
 
 	public function outputTrailer(Writer $writer)
 	{
-		$count = count($this->objects);
+		$count = $this->objectManager->getCount();
 
 		$writer->writeLn("trailer");
 		$writer->writeLn("<<");
@@ -245,5 +274,7 @@ class Document
 	}
 }
 
-$doc = new Document();
-$doc->output(new Writer($doc));
+$om = new IndirectObjectManager();
+$writer = new Writer($om);
+$doc = new Document($om);
+$doc->output($writer);
