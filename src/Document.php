@@ -88,8 +88,10 @@ class Document
 
 		$writer->writeLn("trailer");
 		$writer->writeLn("<<");
-		$writer->writeLn("/Size {$count}");
-		$writer->writeLn("/Root 1 0 R");
+		$writer->writeMap([
+			'Size' => $count, 
+			'Root' => $this->catalog,
+		]);
 		$writer->writeLn(">>");
 	}
 
