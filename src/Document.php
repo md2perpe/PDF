@@ -52,13 +52,13 @@ class Document
 	public function outputAllIndirectObjects(Writer $writer)
 	{
 		foreach ($this->objectManager->getAll() as $object) {
-			$id = $this->objectManager->getId($object);
-			$this->outputIndirectObject($writer, $id, $object);
+			$this->outputIndirectObject($writer, $object);
 		}
 	}
 
-	public function outputIndirectObject(Writer $writer, $id, $object)
+	public function outputIndirectObject(Writer $writer, IndirectObject $object)
 	{
+		$id = $this->objectManager->getId($object);
 		$this->offsets[$id] = $writer->getOffset();
 
 		$writer->writeLn("{$id} 0 obj");
