@@ -34,11 +34,7 @@ class Document
 	public function output(Writer $writer)
 	{
 		$this->outputHeader($writer);
-		foreach ($this->objectManager->getAll() as $object) {
-			$id = $this->objectManager->getId($object);
-			$this->outputIndirectObject($writer, $id, $object);
-		}
-
+		$this->outputAllIndirectObjects($writer);
 		$this->outputXref($writer);
 		$this->outputTrailer($writer);
 		$this->outputXrefOffset($writer);
@@ -52,6 +48,14 @@ class Document
 		$writer->writeLn("");
 	}
 
+	
+	public function outputAllIndirectObjects(Writer $writer)
+	{
+		foreach ($this->objectManager->getAll() as $object) {
+			$id = $this->objectManager->getId($object);
+			$this->outputIndirectObject($writer, $id, $object);
+		}
+	}
 
 	public function outputIndirectObject(Writer $writer, $id, $object)
 	{
